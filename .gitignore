@@ -4,3 +4,5 @@
 terraform.tfstate
 terraform.tfstate.backup
 python/python312.zip
+images/flow.drawio
+images/.$flow.drawio.bkp
