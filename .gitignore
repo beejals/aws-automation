@@ -1,0 +1,6 @@
+# ignore certain directories
+.terraform/
+# ignore certain files
+terraform.tfstate
+terraform.tfstate.backup
+python/python312.zip
