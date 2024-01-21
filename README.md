@@ -7,7 +7,7 @@ This example shows how you can automatically tag an EC2 instance with the name o
 
 1. CloudTrail records API Calls
 2. CloudWatch Logs are stored in S3 Bucket
-3. AWS API Call via CloudTrail events are sent to EventBridge event bus
+3. "AWS API Call via CloudTrail" events are sent to EventBridge event bus
 4. EventBridge rule triggers execution of TagEc2Instance Lambda function for all RunInstances events
 5. Lambda function extracts instanceId and user from the event and creates tag on the EC2 instance
 
