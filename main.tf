@@ -37,7 +37,7 @@ resource "aws_lambda_function" "tag_ec2_lambda" {
   depends_on       = [aws_iam_role.tag_ec2_instance_lambda_role]
 }
 
-resource "aws_cloudwatch_log_group" "example" {
+resource "aws_cloudwatch_log_group" "tag_ec2_lambda_function_log_group" {
   name              = "/aws/lambda/${var.lambda_function_name}"
   retention_in_days = 1
 }
