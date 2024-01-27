@@ -29,10 +29,88 @@ resource "aws_lambda_function" "test_lambda" {
   # If the file is not in the current working directory you will need to include a
   # path.module in the filename.
   filename         = "${path.module}/python/python312.zip"
-  function_name    = "TagEc2Instance"
+  function_name    = var.lambda_function_name
   role             = aws_iam_role.tag_ec2_instance_lambda_role.arn
-  handler          = "TagEc2Instance.lambda_handler"
+  handler          = "${var.lambda_function_name}.lambda_handler"
   source_code_hash = data.archive_file.zip_the_python_code.output_base64sha512
   runtime          = "python3.12"
   depends_on       = [aws_iam_role.tag_ec2_instance_lambda_role]
+}
+
+resource "aws_cloudwatch_log_group" "example" {
+  name              = "/aws/lambda/${var.lambda_function_name}"
+  retention_in_days = 1
+}
+
+# Create the S3 bucket
+resource "aws_s3_bucket" "cloudwatch_logging_bucket" {
+  bucket        = "cloudwatch-logging-bucket"
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_policy" "cloudwatch_s3_bucket_policy" {
+  bucket = aws_s3_bucket.cloudwatch_logging_bucket.id
+
+  policy = <<POLICY
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid":"AWSCloudTrailAclCheck",
+      "Effect":"Allow",
+      "Principal":{
+        "Service":"cloudtrail.amazonaws.com"
+      },
+      "Action":"s3:GetBucketAcl",
+      "Resource":"arn:aws:s3:::${aws_s3_bucket.cloudwatch_logging_bucket.bucket}"
+    },
+    {
+      "Sid":"AWSCloudTrailWrite",
+      "Effect":"Allow",
+      "Principal":{
+        "Service":"cloudtrail.amazonaws.com"
+      },
+      "Action":"s3:PutObject",
+      "Resource":"arn:aws:s3:::${aws_s3_bucket.cloudwatch_logging_bucket.bucket}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+      "Condition":{
+        "StringEquals":{
+          "s3:x-amz-acl":"bucket-owner-full-control"
+        }
+      }
+    }
+  ]
+}
+POLICY
+}
+
+# create iam role to send CloudTrail events to the CloudWatch Logs log group
+resource "aws_iam_role" "cloudtrail_CloudWatch_log_role" {
+  name               = "cloudtrail_CloudWatch_log_role"
+  assume_role_policy = data.aws_iam_policy_document.cloudtrail_role_assume_role_policy.json
+  managed_policy_arns = [
+    aws_iam_policy.create_logs_cloudtrail_policy.arn
+  ]
+}
+
+resource "aws_iam_policy" "create_logs_cloudtrail_policy" {
+  name        = "create_logs_cloudtrail_policy"
+  path        = "/"
+  description = "Policy to allow creation of logs"
+  policy      = data.aws_iam_policy_document.cloudtrail_role_create_logs_policy.json
+}
+
+resource "aws_cloudwatch_log_group" "cloudwatch_log_group" {
+  name              = "/aws/cloudtrail/logs"
+  retention_in_days = 1
+}
+
+resource "aws_cloudtrail" "ec2_instance_api_trail" {
+  depends_on = [aws_s3_bucket_policy.cloudwatch_s3_bucket_policy]
+
+  name                          = "ec2_instance_api_trail"
+  s3_bucket_name                = aws_s3_bucket.cloudwatch_logging_bucket.id
+  include_global_service_events = true
+  is_multi_region_trail         = true
+  cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail_CloudWatch_log_role.arn
+  cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.cloudwatch_log_group.arn}:*"
 }

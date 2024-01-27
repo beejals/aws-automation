@@ -3,6 +3,7 @@
 # ignore certain files
 terraform.tfstate
 terraform.tfstate.backup
+terraform.tfvars
 python/python312.zip
 images/flow.drawio
 images/.$flow.drawio.bkp
