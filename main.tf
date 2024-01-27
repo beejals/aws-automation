@@ -50,37 +50,7 @@ resource "aws_s3_bucket" "cloudwatch_logging_bucket" {
 
 resource "aws_s3_bucket_policy" "cloudwatch_s3_bucket_policy" {
   bucket = aws_s3_bucket.cloudwatch_logging_bucket.id
-
-  policy = <<POLICY
-{
-  "Version":"2012-10-17",
-  "Statement":[
-    {
-      "Sid":"AWSCloudTrailAclCheck",
-      "Effect":"Allow",
-      "Principal":{
-        "Service":"cloudtrail.amazonaws.com"
-      },
-      "Action":"s3:GetBucketAcl",
-      "Resource":"arn:aws:s3:::${aws_s3_bucket.cloudwatch_logging_bucket.bucket}"
-    },
-    {
-      "Sid":"AWSCloudTrailWrite",
-      "Effect":"Allow",
-      "Principal":{
-        "Service":"cloudtrail.amazonaws.com"
-      },
-      "Action":"s3:PutObject",
-      "Resource":"arn:aws:s3:::${aws_s3_bucket.cloudwatch_logging_bucket.bucket}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
-      "Condition":{
-        "StringEquals":{
-          "s3:x-amz-acl":"bucket-owner-full-control"
-        }
-      }
-    }
-  ]
-}
-POLICY
+  policy = data.aws_iam_policy_document.s3_bucket_policy.json
 }
 
 # create iam role to send CloudTrail events to the CloudWatch Logs log group
