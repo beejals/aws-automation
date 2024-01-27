@@ -25,7 +25,7 @@ resource "aws_iam_policy" "tag_ec2_instance_lambda_policy" {
 }
 
 # create lambda function that will tag EC2 instances
-resource "aws_lambda_function" "test_lambda" {
+resource "aws_lambda_function" "tag_ec2_lambda" {
   # If the file is not in the current working directory you will need to include a
   # path.module in the filename.
   filename         = "${path.module}/python/python312.zip"
@@ -113,4 +113,34 @@ resource "aws_cloudtrail" "ec2_instance_api_trail" {
   is_multi_region_trail         = true
   cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail_CloudWatch_log_role.arn
   cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.cloudwatch_log_group.arn}:*"
+}
+
+resource "aws_cloudwatch_event_rule" "ec2-launch" {
+  name        = "capture-ec2-instance-launch"
+  description = "Capture each EC2 Instance Launch"
+
+  event_pattern = <<PATTERN
+{
+  "source": ["aws.ec2"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventSource": ["ec2.amazonaws.com"],
+    "eventName": ["RunInstances"]
+  }
+}
+PATTERN
+}
+
+resource "aws_cloudwatch_event_target" "tag_ec2_lambda" {
+  rule      = aws_cloudwatch_event_rule.ec2-launch.name
+  target_id = aws_lambda_function.tag_ec2_lambda.id
+  arn       = aws_lambda_function.tag_ec2_lambda.arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_tag_ec2_lambda" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.tag_ec2_lambda.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.ec2-launch.arn
 }
