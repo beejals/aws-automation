@@ -1,5 +1,4 @@
 # Using Python to Automate AWS Services | Lambda and EC2 #
-# NOTE: This is still WIP and not complete #
 I have used the AWS automation example created by [Travis Media](https://youtu.be/3DRiruDUhiA?si=t5dbA_T1QpvVZo5f) to create the Terraform code contained in this repo.
 This example shows how you can automatically tag an EC2 instance with the name of the user that created it.  Here is the basic flow when an EC2 instance is created:
 
